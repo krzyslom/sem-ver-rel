@@ -1,0 +1,38 @@
+name: cicd
+
+on:
+  pull_request:
+  push:
+    branches:
+    tags:
+
+jobs:
+  run_on_pr_and_tag:
+    if: github.event.pull_request || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Print ref
+        run: echo ${GITHUB_REF}
+  release:
+    if: endsWith(github.ref, 'alpha') || endsWith(github.ref, 'main')
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 15.3.0
+      - name: Install changelog plugin
+        run: |
+          npm install @semantic-release/changelog
+          touch CHANGELOG.md
+      - name: Execute semantic-release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx semantic-release
+      - name: Store changelog file
+        uses: actions/upload-artifact@v2
+        with:
+          name: changelog
+          path: CHANGELOG.md
